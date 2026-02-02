@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سامانه هوشمند AiPro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --bg-color: #f3f4f6;
+            --chat-bg: #ffffff;
+            --user-msg-bg: #2563eb;
+            --ai-msg-bg: #e5e7eb;
+            --text-color: #1f2937;
+        }
+
+        * { box-sizing: border-box; font-family: 'Tahoma', 'Segoe UI', sans-serif; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: var(--text-color);
+        }
+
+        /* --- Login Container --- */
+        #login-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .input-group { margin-bottom: 1rem; text-align: right; }
+        .input-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; }
+        .input-group input {
+            width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem;
+        }
+        .btn-start {
+            width: 100%; padding: 12px; background: var(--primary-color); color: white; border: none;
+            border-radius: 8px; font-size: 1rem; cursor: pointer; transition: 0.3s;
+        }
+        .btn-start:hover { background: #1d4ed8; }
+
+        /* --- Chat Container --- */
+        #chat-container {
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            width: 95%;
+            max-width: 800px;
+            height: 90vh;
+            background: var(--chat-bg);
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        /* Header */
+        header {
+            padding: 15px; background: white; border-bottom: 1px solid #eee;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .user-info { font-size: 0.9rem; font-weight: bold; }
+        .limit-info { font-size: 0.8rem; color: #dc2626; background: #fee2e2; padding: 4px 8px; border-radius: 12px; }
+
+        /* Chat Box */
+        #messages {
+            flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;
+        }
+
+        .msg { max-width: 80%; padding: 12px 16px; border-radius: 12px; line-height: 1.5; position: relative; font-size: 0.95rem; }
+        .msg.user { align-self: flex-start; background: var(--user-msg-bg); color: white; border-bottom-right-radius: 2px; }
+        .msg.ai { align-self: flex-end; background: var(--ai-msg-bg); color: var(--text-color); border-bottom-left-radius: 2px; }
+
+        /* Search Card Style */
+        .search-card {
+            background: white; border: 1px solid #ddd; padding: 10px; border-radius: 8px; margin-top: 5px;
+        }
+        .search-card-title { color: #1a0dab; font-size: 1rem; text-decoration: none; font-weight: bold; display: block; }
+        .search-card-snippet { font-size: 0.85rem; color: #4b5563; display: block; margin-top: 4px; }
+        .search-btn {
+            display: inline-block; background: #f8f9fa; border: 1px solid #dadce0; color: #3c4043;
+            padding: 6px 12px; font-size: 0.85rem; border-radius: 4px; text-decoration: none;
+        }
+        .search-btn:hover { background: #e8eaed; }
+
+        /* Input Area */
+        .input-area {
+            padding: 15px; background: white; border-top: 1px solid #eee; display: flex; gap: 10px;
+        }
+        #query-input {
+            flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 25px; outline: none;
+        }
+        #send-btn {
+            background: var(--primary-color); color: white; border: none; width: 45px; height: 45px;
+            border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center;
+        }
+        #send-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+        /* Loader */
+        .loader { display: none; margin: 10px auto; text-align: center; font-size: 0.8rem; color: #666; }
+    </style>
+</head>
+<body>
+
+    <div id="login-container">
+        <h2 style="margin-bottom: 20px; color: var(--primary-color);">ورود به AiPro</h2>
+        <div class="input-group">
+            <label>نام:</label>
+            <input type="text" id="fname" placeholder="مثال: علی">
+        </div>
+        <div class="input-group">
+            <label>نام خانوادگی:</label>
+            <input type="text" id="lname" placeholder="مثال: محمدی">
+        </div>
+        <div class="input-group">
+            <label>شماره موبایل:</label>
+            <input type="tel" id="mobile" placeholder="0912..." maxlength="11">
+        </div>
+        <button class="btn-start" onclick="handleLogin()">شروع گفتگو</button>
+        <p id="login-error" style="color: red; margin-top: 10px; font-size: 0.8rem;"></p>
+    </div>
+
+    <div id="chat-container">
+        <header>
+            <div class="user-info">
+                <i class="fa fa-user-circle"></i> <span id="display-name">کاربر</span>
+            </div>
+            <div class="limit-info">
+                باقی‌مانده: <span id="limit-count">30</span>
+            </div>
+        </header>
+
+        <div id="messages">
+            <div class="msg ai">سلام! من AiPro هستم. چطور می‌توانم کمکتان کنم؟</div>
+        </div>
+
+        <div class="loader" id="loader">
+            <i class="fas fa-spinner fa-spin"></i> در حال جستجو...
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="query-input" placeholder="سوال خود را بپرسید..." onkeypress="handleEnter(event)">
+            <button id="send-btn" onclick="processQuery()">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // تنظیمات
+        const MAX_DAILY_LIMIT = 30;
+        let currentUser = null;
+
+        // --- بخش 1: مدیریت ورود و محدودیت ---
+        
+        function handleLogin() {
+            const fname = document.getElementById('fname').value.trim();
+            const lname = document.getElementById('lname').value.trim();
+            const mobile = document.getElementById('mobile').value.trim();
+            const errorEl = document.getElementById('login-error');
+
+            if (!fname || !lname || !mobile) {
+                errorEl.textContent = "لطفا تمام فیلدها را پر کنید.";
+                return;
+            }
+            if (mobile.length < 10 || isNaN(mobile)) {
+                errorEl.textContent = "شماره موبایل معتبر نیست.";
+                return;
+            }
+
+            // ساخت شناسه کاربر
+            currentUser = {
+                name: `${fname} ${lname}`,
+                mobile: mobile
+            };
+
+            // ذخیره در LocalStorage برای مدیریت نشست
+            localStorage.setItem('aiProUser', JSON.stringify(currentUser));
+            
+            // بررسی و ریست کردن محدودیت روزانه
+            checkDailyLimit(mobile);
+
+            // تغییر صفحه
+            document.getElementById('login-container').style.display = 'none';
+            document.getElementById('chat-container').style.display = 'flex';
+            document.getElementById('display-name').textContent = currentUser.name;
+            updateLimitDisplay();
+        }
+
+        function checkDailyLimit(mobile) {
+            const today = new Date().toLocaleDateString('fa-IR'); // تاریخ امروز شمسی
+            const storageKey = `usage_${mobile}`;
+            const storedData = JSON.parse(localStorage.getItem(storageKey)) || {};
+
+            // اگر تاریخ ذخیره شده با امروز فرق دارد، کنتور را صفر کن
+            if (storedData.date !== today) {
+                const newData = { date: today, count: 0 };
+                localStorage.setItem(storageKey, JSON.stringify(newData));
+                return 0;
+            }
+            return storedData.count;
+        }
+
+        function incrementUsage() {
+            if (!currentUser) return false;
+            const mobile = currentUser.mobile;
+            const storageKey = `usage_${mobile}`;
+            const today = new Date().toLocaleDateString('fa-IR');
+            
+            let data = JSON.parse(localStorage.getItem(storageKey));
+            
+            if (data.count >= MAX_DAILY_LIMIT) {
+                return false; // محدودیت تمام شده
+            }
+
+            data.count++;
+            localStorage.setItem(storageKey, JSON.stringify(data));
+            updateLimitDisplay();
+            return true;
+        }
+
+        function updateLimitDisplay() {
+            if (!currentUser) return;
+            const mobile = currentUser.mobile;
+            const count = checkDailyLimit(mobile); // خواندن مقدار فعلی
+            const remaining = MAX_DAILY_LIMIT - count;
+            document.getElementById('limit-count').textContent = remaining;
+            
+            if (remaining <= 0) {
+                document.getElementById('query-input').disabled = true;
+                document.getElementById('query-input').placeholder = "محدودیت روزانه شما تمام شده است.";
+                document.getElementById('send-btn').disabled = true;
+            }
+        }
+
+        // --- بخش 2: رابط کاربری چت ---
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') processQuery();
+        }
+
+        function addMsg(html, type) {
+            const messagesDiv = document.getElementById('messages');
+            const div = document.createElement('div');
+            div.className = `msg ${type}`;
+            div.innerHTML = html;
+            messagesDiv.appendChild(div);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // --- بخش 3: منطق هوش مصنوعی و جستجو ---
+
+        async function processQuery() {
+            const inputEl = document.getElementById('query-input');
+            const query = inputEl.value.trim();
+            
+            if (!query) return;
+
+            // 1. بررسی محدودیت
+            const canProceed = incrementUsage();
+            if (!canProceed) {
+                addMsg("متاسفانه سقف ۳۰ سوال روزانه شما به پایان رسیده است. فردا دوباره امتحان کنید.", 'ai');
+                return;
+            }
+
+            // نمایش پیام کاربر
+            addMsg(query, 'user');
+            inputEl.value = '';
+            document.getElementById('loader').style.display = 'block';
+
+            // 2. منطق پاسخ‌دهی
+            try {
+                // الف) تلاش برای جستجو در ویکی‌پدیا (به عنوان دیتابیس داخلی/جواب مستقیم)
+                const wikiResult = await searchWikipedia(query);
+
+                if (wikiResult) {
+                    // اگر در ویکی‌پدیا چیزی پیدا شد
+                    const responseHtml = `
+                        <strong>${wikiResult.title}</strong><br>
+                        ${wikiResult.snippet}...<br>
+                        <a href="${wikiResult.url}" target="_blank" style="color:#2563eb; font-size:0.8rem;">بیشتر بخوانید در ویکی‌پدیا</a>
+                    `;
+                    reply(responseHtml);
+                } else {
+                    // ب) اگر پیدا نشد، ارجاع به گوگل (کد شما)
+                    fallbackToGoogle(query);
+                }
+
+            } catch (error) {
+                console.error(error);
+                fallbackToGoogle(query);
+            }
+        }
+
+        function fallbackToGoogle(query) {
+            const googleLink = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+            
+            const html = `
+                من دیتابیس داخلی‌ام (ویکی‌پدیا) را چک کردم اما اطلاعات دقیقی برای این موضوع خاص پیدا نشد. 
+                <br>اما لینک نتایج جستجوی زنده را برایت آماده کردم:
+                
+                <div class="search-card">
+                    <div style="font-size:0.75rem; color:#888; margin-bottom:5px;">GOOGLE SEARCH RESULT</div>
+                    <a href="${googleLink}" target="_blank" class="search-card-title">${query} - جستجوی گوگل</a>
+                    <span class="search-card-snippet">برای مشاهده جدیدترین و دقیق‌ترین نتایج از تمام سایت‌های وب، اینجا کلیک کنید.</span>
+                    <div style="margin-top:10px; text-align:left;">
+                        <a href="${googleLink}" target="_blank" class="search-btn">
+                            <i class="fab fa-google"></i> باز کردن نتایج
+                        </a>
+                    </div>
+                </div>
+            `;
+            reply(html);
+        }
+
+        function reply(html) {
+            document.getElementById('loader').style.display = 'none';
+            addMsg(html, 'ai');
+        }
+
+        // --- بخش 4: توابع API ---
+        
+        async function searchWikipedia(query) {
+            // استفاده از API ویکی‌پدیا فارسی
+            const url = `https://fa.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*`;
+            
+            const res = await fetch(url);
+            const data = await res.json();
+            
+            if (data.query && data.query.search.length > 0) {
+                const item = data.query.search[0];
+                // فقط اگر واقعا مرتبط بود برگردان (چک ساده)
+                return {
+                    title: item.title,
+                    snippet: item.snippet.replace(/<[^>]*>?/gm, ''), // حذف تگ‌های HTML اضافی
+                    url: `https://fa.wikipedia.org/wiki/${encodeURIComponent(item.title)}`
+                };
+            }
+            return null;
+        }
+
+        // چک کردن اینکه آیا کاربر قبلا وارد شده؟ (اختیاری)
+        window.onload = function() {
+            const savedUser = localStorage.getItem('aiProUser');
+            if (savedUser) {
+               // می‌توانید این بخش را فعال کنید تا اگر کاربر قبلا وارد شده، مستقیم به چت برود
+               // currentUser = JSON.parse(savedUser);
+               // document.getElementById('fname').value = currentUser.name.split(' ')[0];
+               // document.getElementById('mobile').value = currentUser.mobile;
+               // ... اما برای امنیت دمو، فعلا می‌گذاریم هربار لاگین کند یا کد بالا را آنکامنت کنید
+            }
+        }
+
+    </script>
+</body>
+</html>
